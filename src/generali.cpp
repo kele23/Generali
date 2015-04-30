@@ -6,7 +6,7 @@
 /**
 * Definizione della struttura di Generale
 */
-struct Generale{ //Generale Generico ( Contenuto all'interno di un Set )
+struct Generale { //Generale Generico ( Contenuto all'interno di un Set )
 
 	int valore;
 	int colore;
@@ -37,7 +37,7 @@ struct GeneraleHash
 typedef std::unordered_set< Generale, GeneraleHash > SetGenerali;
 
 /**
-* Item Dell'array di Generali
+* Item dell'array di Generali
 */
 struct GeneraleItem{ //Generale contenuto all'interno dell'Array
 
@@ -46,7 +46,10 @@ struct GeneraleItem{ //Generale contenuto all'interno dell'Array
 
 };
 
-
+/**
+* Ritorna vero se esiste rivalità tra g1 e g2, falso altrimenti
+*/
+bool checkRivalita(Generale g1, Generale g2, GeneraleItem* grafo);
 
 int main(int argc, char* argv[]){
 	
@@ -75,10 +78,23 @@ int main(int argc, char* argv[]){
 	fclose(input);
 
 	//ELABORAZIONE DEL RISULTATO
-	
-
+	for(int i= 0; i<V; i++) {
+		for(Generale g: grafo[i].generali) {
+			if(grafo[g.valore].colore == 0) {
+				grafo[i].generali.insert(grafo[g.valore].generali);		
+				grafo[g.valore].colore = 1;
+			}
+		}
+	}
 	//STAMPA DEL RISULTATO
 
 
 	return 0;
 }
+
+bool checkRivalita(Generale g1, Generale g2, GeneraleItem* grafo) {
+	if(grafo[g1.valore].generali.count(g2)==1 && grafo[g2.valore].generali.count(g1)==1)
+		return true;
+	return false;
+}
+
