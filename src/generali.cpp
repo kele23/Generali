@@ -3,25 +3,57 @@
 #include <stdlib.h>
 #include <unordered_set>
 
+/**
+* Definizione della struttura di Generale
+*/
+struct Generale{
+
+	int valore;
+	int colore;
+
+	bool operator == ( const Generale& g ) const
+    {
+        return ( valore == g.valore );
+    }
+
+};
+
+struct GeneraleHash
+{
+    
+    std::size_t operator () ( const Generale& g ) const
+    {
+        return g.valore;
+    }
+
+};
+
+typedef std::unordered_set< Generale, GeneraleHash > SetGenerali;
+
+
+
 int main(int argc, char* argv[]){
 	
 	int V = 0;
 	int E = 0;
-	std::unordered_set<int>* graph;
+	SetGenerali* grafo;
 
-
-	std:unordered_set<int>* generali; 
 
 	//LETTURA DEL GRAFO
 	FILE *input = fopen("input.txt","r");
 	
 	fscanf(input,"%d %d",&V,&E);
-	graph = new std::unordered_set<int>[V];
+	grafo = new SetGenerali[V];
 
 	int vinc,perd;
 	for(int I = 0; I < E; I++){
 		fscanf(input,"%d %d",&vinc,&perd);
-		graph[perd].insert(vinc);
+		
+		Generale g;
+		g.valore = vinc;
+		g.colore = 0;
+		
+		grafo[perd].insert(g);
 	}
 
 	fclose(input);
