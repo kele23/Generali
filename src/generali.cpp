@@ -39,7 +39,7 @@ typedef std::unordered_set< Generale, GeneraleHash > SetGenerali;
 /**
 * Item Dell'array di Generali
 */
-struct GeneraleItem{
+struct GeneraleItem{ //Generale contenuto all'interno dell'Array
 
 	int colore = 0;
 	SetGenerali generali;
