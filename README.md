@@ -1,5 +1,5 @@
 # Generali
 
 Compilazione/Avvio:
-  * Make
+  * make
   * ./bin/generali.x
