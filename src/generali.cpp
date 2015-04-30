@@ -46,6 +46,14 @@ struct GeneraleItem{ //Generale contenuto all'interno dell'Array
 
 };
 
+
+struct Nodo{ //Un nodo nell'albero della gerarchia che costruiamo
+
+	Generale *padre;
+	SetGenerali *figli;
+
+};
+
 /**
 * Ritorna vero se esiste rivalità tra g1 e g2, falso altrimenti
 */
@@ -86,6 +94,21 @@ int main(int argc, char* argv[]){
 			}
 		}
 	}
+	
+	//Costruzione dell'albero
+	Nodo root;
+	root.padre = NULL;
+	root.figli = new SetGenerali();
+	
+	Generale g;
+	for(int i=0; i<V; i++) {
+		if(grafo[i].generali.empty())
+			//sicuro consigliere!
+			g.valore = i;
+			g.colore = 0; //forse si potrebbe mettere già inizializzato così di default?
+			root.figli->insert(g);
+	}
+	
 	//STAMPA DEL RISULTATO
 
 
