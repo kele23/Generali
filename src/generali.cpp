@@ -2,6 +2,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <unordered_set>
+#include <queue>
 
 /**
 * Definizione della struttura di Generale
@@ -9,7 +10,6 @@
 struct Generale { //Generale Generico ( Contenuto all'interno di un Set )
 
 	int valore;
-	int colore;
 
 	bool operator == ( const Generale& g ) const
     {
@@ -78,7 +78,6 @@ int main(int argc, char* argv[]){
 		
 		Generale g;
 		g.valore = vinc;
-		g.colore = 0;
 
 		grafo[perd].generali.insert(g);
 	}
@@ -86,13 +85,63 @@ int main(int argc, char* argv[]){
 	fclose(input);
 
 	//ELABORAZIONE DEL RISULTATO
+
 	for(int i= 0; i<V; i++) {
+		std::queue<Generale> to_control;
+		/*
+		* Scorro tutti i generali che mi hanno sconfitto
+		*/		
 		for(Generale g: grafo[i].generali) {
-			if(grafo[g.valore].colore == 0) {
-				grafo[i].generali.insert(grafo[g.valore].generali);		
-				grafo[g.valore].colore = 1;
+			/*
+			* Scorro tutti i generali che hanno sconfitto g
+			*/
+			for(Generale gen: grafo[g.valore].generali){
+				if(gen.valore == i)
+					continue;
+				/*
+				* Se per caso non è già un generale che mi ha sconfitto allora lo aggiungo tra chi mi disprezza 
+				*/
+				if(grafo[i].generali.find(gen) == grafo[i].generali.end()){
+					grafo[i].generali.insert(gen);
+					/*
+					* Elemento è colorato? 
+					* SI vuol dire che non dobbiamo andare a controllare gli elementi che contiene
+					* NO vuol dire che dobbiamo andare a controllare gli elementi che contiene
+					*/
+					if(grafo[g.valore].colore != 1){
+						to_control.push(gen);
+					}
+				}
 			}
 		}
+
+		while (!to_control.empty()){
+			Generale g = to_control.front();
+			/*
+			* Scorro tutti i generali che hanno sconfitto g
+			*/
+			for(Generale gen: grafo[g.valore].generali){
+				if(gen.valore == i)
+					continue;
+				/*
+				* Se per caso non è già un generale che mi ha sconfitto allora lo aggiungo tra chi mi disprezza 
+				*/
+				if(grafo[i].generali.find(gen) == grafo[i].generali.end()){
+					grafo[i].generali.insert(gen);
+					/*
+					* Elemento è colorato? 
+					* SI vuol dire che non dobbiamo andare a controllare gli elementi che contiene
+					* NO vuol dire che dobbiamo andare a controllare gli elementi che contiene
+					*/
+					if(grafo[g.valore].colore != 1){
+						to_control.push(gen);
+					}
+				}
+			}
+			to_control.pop();
+  		}
+
+  		grafo[i].colore = 1;
 	}
 	
 	//Costruzione dell'albero
@@ -110,7 +159,13 @@ int main(int argc, char* argv[]){
 	}
 	
 	//STAMPA DEL RISULTATO
-
+	for(int i = 0; i < V ; i++){
+		std::cout << "Generale: " << i << " -> ";
+		for(Generale g: grafo[i].generali) {
+			std::cout << g.valore << ",";
+		}
+		std::cout << "\n";
+	}
 
 	return 0;
 }
