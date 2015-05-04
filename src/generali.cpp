@@ -5,6 +5,9 @@
 #include <queue>
 #include <sstream>
 
+#include <chrono>
+#include <ctime>
+
 //Comandato Da
 #define NONE -2
 #define ROOT -1
@@ -49,11 +52,11 @@ void checkSottoposto(int generale,GeneraleItem* grafo);
 
 bool puoSottoposto(int gf,int gp,GeneraleItem* grafo);
 
-void BFS(int i,GeneraleItem* grafo);
-
 void BFS2(int i,GeneraleItem* grafo);
 
 int main(int argc, char* argv[]){
+
+	std::chrono::time_point<std::chrono::system_clock> start, end;
 	
 	int V = 0;
 	int E = 0;
@@ -61,6 +64,8 @@ int main(int argc, char* argv[]){
 
 
 	//LETTURA DEL GRAFO
+
+	start = std::chrono::system_clock::now();
 	FILE *input = fopen("input.txt","r");
 	
 	fscanf(input,"%d %d",&V,&E);
@@ -75,16 +80,32 @@ int main(int argc, char* argv[]){
 	}
 
 	fclose(input);
+	end = std::chrono::system_clock::now();
+	std::chrono::duration<double> elapsed_seconds = end-start;
+
+	std::cout << "Lettura: " << elapsed_seconds.count() << std::endl;
 
 	//ELABORAZIONE DEL RISULTATO
+	start = std::chrono::system_clock::now();
 	for(int i=0; i<V; i++){
 		BFS2(i,grafo);
-		//BFS(i,grafo);
 	}
+	end = std::chrono::system_clock::now();
+	elapsed_seconds = end-start;
+
+	std::cout << "BFS: " << elapsed_seconds.count() << std::endl;
+
+	/*for(int i=0; i<V; i++){
+		std::cout << i << " -> ";
+		for(int g: grafo[i].disprezzo){
+			std::cout << g << " ";
+		}
+		std::cout << std::endl;
+	}*/
 
 	
 	//Costruzione dell'albero
-
+	start = std::chrono::system_clock::now();
 	std::stringstream ssCons;
 	std::stringstream ssSottoposti;
 	int consiglieri = 0;	
@@ -102,7 +123,12 @@ int main(int argc, char* argv[]){
 			ssSottoposti << grafo[i].comandato << " " << i << "\n";
 		}
 	}
+	end = std::chrono::system_clock::now();
+	elapsed_seconds = end-start;
 
+	std::cout << "Albero: " << elapsed_seconds.count() << std::endl;
+
+	start = std::chrono::system_clock::now();
 	FILE* output = fopen("output.txt","w");
 
 	fprintf(output,"%d\n",consiglieri);
@@ -110,6 +136,10 @@ int main(int argc, char* argv[]){
 	fprintf(output,"%s\n",ssSottoposti.str().c_str());
 	
 	fclose(output);
+	end = std::chrono::system_clock::now();
+	elapsed_seconds = end-start;
+
+	std::cout << "Scrittura: " << elapsed_seconds.count() << std::endl;
 
 	return 0;
 }
@@ -164,21 +194,17 @@ void BFS2(int i,GeneraleItem* grafo){
 		
 		grafo[i].disprezzo.insert(g);
 
-		/*
-		* Scorro tutti i generali che hanno sconfitto g
-		*/
-		for(int gen: grafo[g].sconfitto){
-			/*
-			* Se per caso non è già un generale che mi ha sconfitto allora lo aggiungo tra chi mi disprezza 
-			*/
-			if(grafo[i].disprezzo.find(gen) == grafo[i].disprezzo.end()){
+		if(grafo[g].colore == BLACK){
+			for(int gen: grafo[g].disprezzo){
 				grafo[i].disprezzo.insert(gen);
+			}
+		}else{
+			for(int gen: grafo[g].sconfitto){
 				/*
-				* Elemento è colorato? 
-				* SI vuol dire che non dobbiamo andare a controllare gli elementi che contiene
-				* NO vuol dire che dobbiamo andare a controllare gli elementi che contiene
+				* Se per caso non è già un generale che mi ha sconfitto allora lo aggiungo tra chi mi disprezza 
 				*/
-				if(grafo[g].colore != BLACK){
+				if(grafo[i].disprezzo.find(gen) == grafo[i].disprezzo.end()){
+					grafo[i].disprezzo.insert(gen);
 					to_control.push(gen);
 				}
 			}
@@ -188,31 +214,28 @@ void BFS2(int i,GeneraleItem* grafo){
 	while (!to_control.empty()){
 		int g = to_control.front();
 
-		for(int gen: grafo[g].disprezzo){
-			if(gen == i)
-				continue;
-			
-			if(grafo[i].disprezzo.find(gen) == grafo[i].disprezzo.end()){
+		if(grafo[g].colore == BLACK){
+			for(int gen: grafo[g].disprezzo){
 				grafo[i].disprezzo.insert(gen);
-
-				if(grafo[g].colore != BLACK){
+			}
+		}else{
+			for(int gen: grafo[g].sconfitto){
+				/*
+				* Se per caso non è già un generale che mi ha sconfitto allora lo aggiungo tra chi mi disprezza 
+				*/
+				if(grafo[i].disprezzo.find(gen) == grafo[i].disprezzo.end()){
+					grafo[i].disprezzo.insert(gen);
 					to_control.push(gen);
 				}
 			}
 		}
+
 		to_control.pop();
 	}
 
 	grafo[i].colore = BLACK;
 
-	/*std::cout << i << " -> ";
-	for(int g: grafo[i].disprezzo){
-		std::cout << g << " ";
-	}
-	std::cout << std::endl;*/
-
-
-	//Seconda fase BFS 
+	//Seconda fase BFS ( DFS )
 	for(int g: grafo[i].vincitore) {
 
 		if(grafo[g].colore == BLACK)
@@ -221,11 +244,13 @@ void BFS2(int i,GeneraleItem* grafo){
 		grafo[g].disprezzo.insert(i);
 		for(int d: grafo[i].disprezzo){
 
-			if(grafo[g].disprezzo.find(d) == grafo[g].disprezzo.end()){
+			if(d != g && grafo[g].disprezzo.find(d) == grafo[g].disprezzo.end()){
 				grafo[g].disprezzo.insert(d);
 			}
 
 		}
+
+		grafo[g].colore = GREEN;
 
 		BFS2(g,grafo);
 	}
