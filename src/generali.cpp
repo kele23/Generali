@@ -9,10 +9,12 @@
 #define NONE -2
 #define ROOT -1
 
-//Colore
-#define NOT_VISITED 0
-#define VISITED 1
+//Colore BFS1
+#define WHITE	0
+#define BLACK	1	
 
+//Colore BFS2
+#define GREEN 	2 //Visitato attraverso altri nodi
 
 /**
 * Definizione del Set
@@ -24,7 +26,7 @@ typedef std::unordered_set< int > SetGenerali;
 */
 struct GeneraleItem{ //Generale contenuto all'interno dell'Array
 
-	int colore = NOT_VISITED;
+	int colore = WHITE;
 	SetGenerali sconfitto;
 
 	int comandato = NONE;
@@ -32,6 +34,9 @@ struct GeneraleItem{ //Generale contenuto all'interno dell'Array
 
 	//Generali che mi disprezzano
 	SetGenerali disprezzo;
+
+	//Generali che ho sconfitto
+	SetGenerali vincitore;
 
 };
 
@@ -43,6 +48,10 @@ bool checkRivalita(int g1, int g2, GeneraleItem* grafo);
 void checkSottoposto(int generale,GeneraleItem* grafo);
 
 bool puoSottoposto(int gf,int gp,GeneraleItem* grafo);
+
+void BFS(int i,GeneraleItem* grafo);
+
+void BFS2(int i,GeneraleItem* grafo);
 
 int main(int argc, char* argv[]){
 	
@@ -61,63 +70,18 @@ int main(int argc, char* argv[]){
 	for(int I = 0; I < E; I++){
 		fscanf(input,"%d %d",&vinc,&perd);
 		grafo[perd].sconfitto.insert(vinc);
-		grafo[perd].disprezzo.insert(vinc);
+		//grafo[perd].disprezzo.insert(vinc); //SOLO BFS NO BFS2
+		grafo[vinc].vincitore.insert(perd);
 	}
 
 	fclose(input);
 
 	//ELABORAZIONE DEL RISULTATO
-
-	for(int i= 0; i<V; i++) {
-		std::queue<int> to_control;
-
-		/*
-		* Scorro tutti i generali che mi hanno sconfitto
-		*/		
-		for(int g: grafo[i].disprezzo) {
-			/*
-			* Scorro tutti i generali che hanno sconfitto g
-			*/
-			for(int gen: grafo[g].disprezzo){
-				if(gen == i)
-					continue;
-				/*
-				* Se per caso non è già un generale che mi ha sconfitto allora lo aggiungo tra chi mi disprezza 
-				*/
-				if(grafo[i].disprezzo.find(gen) == grafo[i].disprezzo.end()){
-					grafo[i].disprezzo.insert(gen);
-					/*
-					* Elemento è colorato? 
-					* SI vuol dire che non dobbiamo andare a controllare gli elementi che contiene
-					* NO vuol dire che dobbiamo andare a controllare gli elementi che contiene
-					*/
-					if(grafo[g].colore != 1){
-						to_control.push(gen);
-					}
-				}
-			}
-		}
-
-		while (!to_control.empty()){
-			int g = to_control.front();
-
-			for(int gen: grafo[g].disprezzo){
-				if(gen == i)
-					continue;
-				
-				if(grafo[i].disprezzo.find(gen) == grafo[i].disprezzo.end()){
-					grafo[i].disprezzo.insert(gen);
-
-					if(grafo[g].colore != 1){
-						to_control.push(gen);
-					}
-				}
-			}
-			to_control.pop();
-  		}
-
-  		grafo[i].colore = 1;
+	for(int i=0; i<V; i++){
+		BFS2(i,grafo);
+		//BFS(i,grafo);
 	}
+
 	
 	//Costruzione dell'albero
 
@@ -181,5 +145,89 @@ void checkSottoposto(int generale,GeneraleItem* grafo){
 	}
 	grafo[generale].comandato = ROOT;
 	return;
+}
+
+void BFS2(int i,GeneraleItem* grafo){
+	
+	if(grafo[i].colore == BLACK) //Elemento già completato
+		return;
+
+	std::queue<int> to_control;
+
+	/*
+	* Scorro tutti i generali che mi hanno sconfitto
+	*/		
+	for(int g: grafo[i].sconfitto) {
+
+		if(grafo[i].colore == GREEN && grafo[i].disprezzo.count(g) == 1)
+			continue;
+		
+		grafo[i].disprezzo.insert(g);
+
+		/*
+		* Scorro tutti i generali che hanno sconfitto g
+		*/
+		for(int gen: grafo[g].sconfitto){
+			/*
+			* Se per caso non è già un generale che mi ha sconfitto allora lo aggiungo tra chi mi disprezza 
+			*/
+			if(grafo[i].disprezzo.find(gen) == grafo[i].disprezzo.end()){
+				grafo[i].disprezzo.insert(gen);
+				/*
+				* Elemento è colorato? 
+				* SI vuol dire che non dobbiamo andare a controllare gli elementi che contiene
+				* NO vuol dire che dobbiamo andare a controllare gli elementi che contiene
+				*/
+				if(grafo[g].colore != BLACK){
+					to_control.push(gen);
+				}
+			}
+		}
+	}
+
+	while (!to_control.empty()){
+		int g = to_control.front();
+
+		for(int gen: grafo[g].disprezzo){
+			if(gen == i)
+				continue;
+			
+			if(grafo[i].disprezzo.find(gen) == grafo[i].disprezzo.end()){
+				grafo[i].disprezzo.insert(gen);
+
+				if(grafo[g].colore != BLACK){
+					to_control.push(gen);
+				}
+			}
+		}
+		to_control.pop();
+	}
+
+	grafo[i].colore = BLACK;
+
+	/*std::cout << i << " -> ";
+	for(int g: grafo[i].disprezzo){
+		std::cout << g << " ";
+	}
+	std::cout << std::endl;*/
+
+
+	//Seconda fase BFS 
+	for(int g: grafo[i].vincitore) {
+
+		if(grafo[g].colore == BLACK)
+			continue;
+
+		grafo[g].disprezzo.insert(i);
+		for(int d: grafo[i].disprezzo){
+
+			if(grafo[g].disprezzo.find(d) == grafo[g].disprezzo.end()){
+				grafo[g].disprezzo.insert(d);
+			}
+
+		}
+
+		BFS2(g,grafo);
+	}
 }
 
