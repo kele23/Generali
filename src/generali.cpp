@@ -35,9 +35,6 @@ struct GeneraleItem{ //Generale contenuto all'interno dell'Array
 	int comandato = NONE;
 	SetGenerali sottoposti;
 
-	//Generali che mi disprezzano
-	SetGenerali disprezzo;
-
 	//Generali che ho sconfitto
 	SetGenerali vincitore;
 
@@ -46,13 +43,13 @@ struct GeneraleItem{ //Generale contenuto all'interno dell'Array
 /**
 * Ritorna vero se esiste rivalità tra g1 e g2, falso altrimenti
 */
-bool checkRivalita(int g1, int g2, GeneraleItem* grafo);
+bool checkRivalita(int g1, int g2, GeneraleItem* grafo,std::vector<SetGenerali> cicli);
 
-void checkSottoposto(int generale,GeneraleItem* grafo);
+void checkSottoposto(int generale,GeneraleItem* grafo,std::vector<SetGenerali> cicli);
 
-bool puoSottoposto(int gf,int gp,GeneraleItem* grafo);
+bool puoSottoposto(int gf,int gp,GeneraleItem* grafo,std::vector<SetGenerali> cicli);
 
-void BFS2(int i,GeneraleItem* grafo);
+SetGenerali DFS(int i,GeneraleItem* grafo);
 
 void rimuoviPerdenti(int p,GeneraleItem* grafo);
 
@@ -63,7 +60,7 @@ int main(int argc, char* argv[]){
 	int V = 0;
 	int E = 0;
 	GeneraleItem* grafo;
-
+	std::vector<SetGenerali> cicli;
 
 	//LETTURA DEL GRAFO
 
@@ -77,15 +74,17 @@ int main(int argc, char* argv[]){
 	for(int I = 0; I < E; I++){
 
 		fscanf(input,"%d %d",&vinc,&perd);
+
 		grafo[perd].sconfitto.insert(vinc);
 		//grafo[perd].disprezzo.insert(vinc); //SOLO BFS NO BFS2
 		grafo[vinc].vincitore.insert(perd);
 	}
 
 	for(int i = 0; i < V; i++){
-		if(grafo[i].vincitore.empty())
+		if(grafo[i].vincitore.empty()) 
 			rimuoviPerdenti(i,grafo);
 	}
+
 
 	fclose(input);
 	end = std::chrono::system_clock::now();
@@ -96,21 +95,15 @@ int main(int argc, char* argv[]){
 	//ELABORAZIONE DEL RISULTATO
 	start = std::chrono::system_clock::now();
 	for(int i=0; i<V; i++){
-		BFS2(i,grafo);
+		SetGenerali ci = DFS(i,grafo);
+		if(!ci.empty())
+			cicli.insert(cicli.begin(),ci);
 	}
+
 	end = std::chrono::system_clock::now();
 	elapsed_seconds = end-start;
 
 	std::cout << "BFS: " << elapsed_seconds.count() << std::endl;
-
-	/*for(int i=0; i<V; i++){
-		std::cout << i << " -> ";
-		for(int g: grafo[i].disprezzo){
-			std::cout << g << " ";
-		}
-		std::cout << std::endl;
-	}*/
-
 	
 	//Costruzione dell'albero
 	start = std::chrono::system_clock::now();
@@ -121,7 +114,7 @@ int main(int argc, char* argv[]){
 	for(int i=0; i<V; i++) {
 		//L'elemento è già stato aggiunto nell'albero?
 		if(grafo[i].comandato == NONE){
-			checkSottoposto(i,grafo);
+			checkSottoposto(i,grafo,cicli);
 		}
 
 		if(grafo[i].comandato == -1){
@@ -152,30 +145,37 @@ int main(int argc, char* argv[]){
 	return 0;
 }
 
-bool checkRivalita(int g1, int g2, GeneraleItem* grafo) {
-	if(grafo[g1].disprezzo.count(g2)==1 && grafo[g2].disprezzo.count(g1)==1)
-		return true;
+bool checkRivalita(int g1, int g2, GeneraleItem* grafo,std::vector<SetGenerali> cicli) {
+	for(SetGenerali ciclo: cicli){
+		if(ciclo.count(g1) == 1 || ciclo.count(g2) == 1){
+			if(ciclo.count(g1) == 1 && ciclo.count(g2) == 1){
+				return true;
+			}else{
+				return false;
+			}
+		}
+	}
 	return false;
 }
 
-bool puoSottoposto(int gf,int gp,GeneraleItem* grafo){
+bool puoSottoposto(int gf,int gp,GeneraleItem* grafo,std::vector<SetGenerali> cicli){
 
 	//Se per caso si odiano a vicenda NO! SECONDA LEGGE
-	if(grafo[gp].disprezzo.count(gf) == 1) 		
+	if(checkRivalita(gp,gf,grafo,cicli))
 		return false;
 
 	//potrebbe essere figlio.. controllare i fratelli
 	bool ok = true;	 //Se non ha fratelli OK! //TERZA LEGGE
 	for(int g: grafo[gp].sottoposti){	
-		ok = checkRivalita(g,gf,grafo) ? false : ok;
+		ok = checkRivalita(g,gf,grafo,cicli) ? false : ok;
 	}
 
 	return ok;
 }
 
-void checkSottoposto(int generale,GeneraleItem* grafo){
+void checkSottoposto(int generale,GeneraleItem* grafo,std::vector<SetGenerali> cicli){
 	for(int g: grafo[generale].sconfitto){
-		if(puoSottoposto(generale,g,grafo)){
+		if(puoSottoposto(generale,g,grafo,cicli)){
 			grafo[generale].comandato = g;
 			grafo[g].sottoposti.insert(generale);
 			return;
@@ -185,83 +185,34 @@ void checkSottoposto(int generale,GeneraleItem* grafo){
 	return;
 }
 
-void BFS2(int i,GeneraleItem* grafo){
+SetGenerali DFS(int i,GeneraleItem* grafo){
 	
 	if(grafo[i].colore == BLACK) //Elemento già completato
-		return;
+		return SetGenerali();
 
-	std::queue<int> to_control;
+	if(grafo[i].colore == GREEN)
+		return SetGenerali({ i });
 
-	/*
-	* Scorro tutti i generali che mi hanno sconfitto
-	*/		
-	for(int g: grafo[i].sconfitto) {
+	grafo[i].colore = GREEN;
 
-		if(grafo[i].colore == GREEN && grafo[i].disprezzo.count(g) == 1)
-			continue;
-		
-		grafo[i].disprezzo.insert(g);
-
-		if(grafo[g].colore == BLACK){
-			for(int gen: grafo[g].disprezzo){
-				grafo[i].disprezzo.insert(gen);
-			}
-		}else{
-			for(int gen: grafo[g].sconfitto){
-				/*
-				* Se per caso non è già un generale che mi ha sconfitto allora lo aggiungo tra chi mi disprezza 
-				*/
-				if(grafo[i].disprezzo.find(gen) == grafo[i].disprezzo.end()){
-					grafo[i].disprezzo.insert(gen);
-					to_control.push(gen);
-				}
+	SetGenerali set;
+	for(int v : grafo[i].sconfitto){
+		SetGenerali ret_set = DFS(v,grafo);
+		if(!ret_set.empty()){
+			for(int r: ret_set){
+				set.insert(r);
 			}
 		}
 	}
 
-	while (!to_control.empty()){
-		int g = to_control.front();
-
-		if(grafo[g].colore == BLACK){
-			for(int gen: grafo[g].disprezzo){
-				grafo[i].disprezzo.insert(gen);
-			}
-		}else{
-			for(int gen: grafo[g].sconfitto){
-				/*
-				* Se per caso non è già un generale che mi ha sconfitto allora lo aggiungo tra chi mi disprezza 
-				*/
-				if(grafo[i].disprezzo.find(gen) == grafo[i].disprezzo.end()){
-					grafo[i].disprezzo.insert(gen);
-					to_control.push(gen);
-				}
-			}
-		}
-
-		to_control.pop();
+	if(!set.empty()){
+		set.insert(i);
 	}
 
 	grafo[i].colore = BLACK;
 
-	//Seconda fase BFS ( DFS )
-	for(int g: grafo[i].vincitore) {
-
-		if(grafo[g].colore == BLACK)
-			continue;
-
-		grafo[g].disprezzo.insert(i);
-		for(int d: grafo[i].disprezzo){
-
-			if(d != g && grafo[g].disprezzo.find(d) == grafo[g].disprezzo.end()){
-				grafo[g].disprezzo.insert(d);
-			}
-
-		}
-
-		grafo[g].colore = GREEN;
-
-		BFS2(g,grafo);
-	}
+	return set;
+	
 }
 
 void rimuoviPerdenti(int p,GeneraleItem* grafo){
@@ -280,4 +231,3 @@ void rimuoviPerdenti(int p,GeneraleItem* grafo){
 	}
 
 }
-
