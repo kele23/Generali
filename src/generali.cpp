@@ -54,6 +54,8 @@ bool puoSottoposto(int gf,int gp,GeneraleItem* grafo);
 
 void BFS2(int i,GeneraleItem* grafo);
 
+void rimuoviPerdenti(int p,GeneraleItem* grafo);
+
 int main(int argc, char* argv[]){
 
 	std::chrono::time_point<std::chrono::system_clock> start, end;
@@ -73,10 +75,16 @@ int main(int argc, char* argv[]){
 
 	int vinc,perd;
 	for(int I = 0; I < E; I++){
+
 		fscanf(input,"%d %d",&vinc,&perd);
 		grafo[perd].sconfitto.insert(vinc);
 		//grafo[perd].disprezzo.insert(vinc); //SOLO BFS NO BFS2
 		grafo[vinc].vincitore.insert(perd);
+	}
+
+	for(int i = 0; i < V; i++){
+		if(grafo[i].vincitore.empty())
+			rimuoviPerdenti(i,grafo);
 	}
 
 	fclose(input);
@@ -112,10 +120,9 @@ int main(int argc, char* argv[]){
 
 	for(int i=0; i<V; i++) {
 		//L'elemento è già stato aggiunto nell'albero?
-		if(grafo[i].comandato != NONE)
-			continue;
-		
-		checkSottoposto(i,grafo);
+		if(grafo[i].comandato == NONE){
+			checkSottoposto(i,grafo);
+		}
 
 		if(grafo[i].comandato == -1){
 			ssCons << i << " ";
@@ -255,5 +262,22 @@ void BFS2(int i,GeneraleItem* grafo){
 
 		BFS2(g,grafo);
 	}
+}
+
+void rimuoviPerdenti(int p,GeneraleItem* grafo){
+
+	grafo[p].colore = BLACK;
+	if(grafo[p].sconfitto.empty())
+		grafo[p].comandato = ROOT;
+	else
+		grafo[p].comandato = *(grafo[p].sconfitto.begin());
+
+	for(int v: grafo[p].sconfitto){
+		grafo[v].vincitore.erase(p);
+
+		if(grafo[v].vincitore.empty())
+			rimuoviPerdenti(v,grafo);
+	}
+
 }
 
