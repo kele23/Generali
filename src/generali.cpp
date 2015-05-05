@@ -114,6 +114,7 @@ int main(int argc, char* argv[]){
 		//L'elemento è già stato aggiunto nell'albero?
 		if(grafo[i].comandato != NONE)
 			continue;
+		
 		checkSottoposto(i,grafo);
 
 		if(grafo[i].comandato == -1){
