@@ -170,7 +170,6 @@ Ritorna DFS(int i,GeneraleItem* grafo){
 		r.ciclo = grafo[i].ciclo;
 
 		//std::cout << "b: "<< i << std::endl;
-
 		return r;
 	}
 
@@ -194,7 +193,6 @@ Ritorna DFS(int i,GeneraleItem* grafo){
 	}
 
 	//std::cout << "w: "<< i << std::endl;
-
 	grafo[i].colore = GREEN;
 
 	SetGenerali ppPadri;
