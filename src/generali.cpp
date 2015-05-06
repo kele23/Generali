@@ -77,6 +77,9 @@ int main(int argc, char* argv[]){
 		grafo[vinc].vincitore.insert(perd);
 	}
 
+	SetGenerali gg;
+	std::cout << "BC = " << gg.max_bucket_count() << std::endl;
+
 	fclose(input);
 	end = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed_seconds = end-start;
@@ -96,7 +99,7 @@ int main(int argc, char* argv[]){
 	//ELABORAZIONE DEL RISULTATO
 	start = std::chrono::system_clock::now();
 	for(int i=0; i<V; i++){
-		DFS(i,grafo);
+		Ritorna r = DFS(i,grafo);
 	}
 
 	end = std::chrono::system_clock::now();
@@ -147,14 +150,14 @@ SetGenerali* merge(SetGenerali* cicli[],int size,GeneraleItem* grafo){
 		if(cicli[i] == NULL)
 			continue;
 		if(ciclo == NULL){
-			ciclo = cicli[i];
-		}else{
-			for(int c : *cicli[i]){
-				grafo[c].ciclo = ciclo;
-				ciclo->insert(c);
-			}
-			//free(cicli[i]);
+			ciclo = new SetGenerali();
 		}
+
+		for(int c : *cicli[i]){
+			grafo[c].ciclo = ciclo;
+			ciclo->insert(c);
+		}
+		//cicli[i]->clear();
 	}
 	return ciclo;
 }
@@ -208,17 +211,20 @@ Ritorna DFS(int i,GeneraleItem* grafo){
 		cicli[pos++] = ret.ciclo;
 	}
 
+
 	grafo[i].ciclo = merge(cicli,grafo[i].sconfitto.size(),grafo);
 	r.ciclo = grafo[i].ciclo;
 
 	if(grafo[i].ciclo != NULL){
-		r.ciclo->insert(i);
+		const int ins = i;
+		r.ciclo->insert(ins);
 	}
 
 	for(int p: ppPadri){
 		bool fratello = true;
 		for(int f: grafo[p].sottoposti){
-			if(grafo[i].ciclo->count(f) == 1){
+
+			if(grafo[i].ciclo != NULL && grafo[i].ciclo->count(f) == 1){
 				fratello = false;
 				break;
 			}
@@ -229,8 +235,7 @@ Ritorna DFS(int i,GeneraleItem* grafo){
 		}
 	}
 
-	if(grafo[i].comandato != NONE)
-		r.comandato = grafo[i].comandato;
+	r.comandato = grafo[i].comandato;
 
 	grafo[i].colore = BLACK;
 
