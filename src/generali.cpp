@@ -36,7 +36,7 @@ struct GeneraleItem{ //Generale contenuto all'interno dell'Array
 	SetGenerali sottoposti;
 
 	//Generali che mi disprezzano
-	SetGenerali disprezzo;
+	SetGenerali* disprezzo;
 
 	//Generali che ho sconfitto
 	SetGenerali vincitore;
