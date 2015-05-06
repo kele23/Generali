@@ -4,6 +4,8 @@
 #include <unordered_set>
 #include <queue>
 #include <sstream>
+#include <vector>
+#include <stack>
 
 #include <chrono>
 #include <ctime>
@@ -34,13 +36,15 @@ struct GeneraleItem{ //Generale contenuto all'interno dell'Array
 	SetGenerali sottoposti;
 };
 
+vector<SetGenerali> cicli;
+
 void visita(int v, GeneraleItem* grafo, stack path);
 
 bool ha1elementoComune(SetGenerali a, SetGenerali b);
 
 void merge(SetGenerali a, SetGenerali b);
 
-
+	
 int main(int argc, char* argv[]){
 
 	std::chrono::time_point<std::chrono::system_clock> start, end;
@@ -50,7 +54,7 @@ int main(int argc, char* argv[]){
 	GeneraleItem* grafo;
 	SetGenerali consiglieri;
 	
-	vector<SetGenerali> cicli;
+
 
 
 	//LETTURA DEL GRAFO
@@ -79,9 +83,8 @@ int main(int argc, char* argv[]){
 	
 	// Chi non ha archi entranti è consigliere
 	for(int i=0; i<V; i++){
-		if(grafo[i].gradoE == 0){
+		if(grafo[i].gradoE == 0)
 			consiglieri.insert(i);					
-		}
 	}
 	
 	end = std::chrono::system_clock::now();
@@ -98,42 +101,24 @@ int main(int argc, char* argv[]){
 	}*/
 
 	for(int v: consiglieri){
-	
 		stack<int> path;
 		
 		grafo[v].colore = GREEN; //marco il consigliere iniziale
 		visita(v, grafo, path);
 		
 		for(int i=0; i<V; i++){
-		if(grafo[i].gradoE == 0){
-			consiglieri.insert(i);					
+			if(grafo[i].gradoE == 0)
+				consiglieri.insert(i);					
 		}
 	}
-	
-	
-	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 	
 	//Costruzione dell'albero
 	start = std::chrono::system_clock::now();
 	std::stringstream ssCons;
 	std::stringstream ssSottoposti;
-	int consiglieri = 0;	
-
+	int numConsiglieri = 0;	
+/*
 	for(int i=0; i<V; i++) {
 		//L'elemento è già stato aggiunto nell'albero?
 		if(grafo[i].comandato == NONE){
@@ -164,18 +149,19 @@ int main(int argc, char* argv[]){
 	elapsed_seconds = end-start;
 
 	std::cout << "Scrittura: " << elapsed_seconds.count() << std::endl;
-
+*/
 	return 0;
 }
 
 
-void visita(int v, GeneraleItem* grafo, stack path){
+void visita(int v, GeneraleItem* grafo, stack path) {
 
-	if(grafo[v].colore != GREEN){ return; }
+	if(grafo[v].colore != GREEN)
+		return;
 
-	for(int f: grafo[v].figli){
-		if(f.colore == BLACK) continue;
-		if(f.colore == GREEN) { // c'è un ciclo!
+	for(int f: grafo[v].figli) {
+		if(grafo[f].colore == BLACK) continue;
+		if(grafo[f].colore == GREEN) { // c'è un ciclo!
 			int q;
 			int p=v;
 			SetGenerali cicloNuovo;
@@ -193,24 +179,26 @@ void visita(int v, GeneraleItem* grafo, stack path){
 			while(q!=f);
 			
 			for(SetGenerali c: cicli){
-				if (hanno1elementoComune(c, cicloNuovo)){
+				if (hanno1elementoComune(c, cicloNuovo))
 					merge(c, cicloNuovo);
-				}
-				else cicli.insert(cicloNuovo);
+				else cicli.push_back(cicloNuovo);
 			}
-			
 		}
-		if(f.colore == WHITE) { //può essere mio figlio
+		if(grafo[f].colore == WHITE) { //può essere mio figlio
 			// controllo se non è in un ciclo con v
 			// controllo se non è in un ciclo con gli altri figli già assegnati di v --TERZA LEGGE
 			bool canBeS=true;
 			
-			if(areInCicle(f,v)) continue;
+			if(areInCicle(f,v)) 
+				continue;
 			for(int s:grafo[v].sottoposti)
-				if(areInCicle(s,f)) {canBeS=false; break;}
+				if(areInCicle(s,f)) {
+					canBeS=false; 
+					break;
+				}
 			
-			if (canBeS){
-				f.colore = GREEN;
+			if(canBeS) {
+				grafo[f].colore = GREEN;
 				grafo[v].sottoposti.insert(f);
 				
 				for(int figlio:grafo[f].figli){
@@ -220,25 +208,26 @@ void visita(int v, GeneraleItem* grafo, stack path){
 				path.push(v);
 				visita(f, grafo, path);
 			}
-			}
 		}
-	
 	}
-
-	grafo[v].colore = BLACK;
-
-
+	grafo[v].colore = BLACK;	
 }
+
 
 
 bool ha1elementoComune(SetGenerali a, SetGenerali b){
-
-return true;
-
-
+	for(int el: a)
+		if(b.find(el) != b.end())
+			return true;
+			
+	return false;
 }
 
 void merge(SetGenerali a, SetGenerali b){
-
-
+	SetGenerali ciclo;
+	for(int el: a)
+		ciclo.insert(el);
+	for(int el: b)
+		ciclo.insert(el);
+	cicli.push_back(ciclo);
 }
