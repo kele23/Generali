@@ -42,6 +42,8 @@ void visita(int v, GeneraleItem* grafo, stack path);
 
 bool ha1elementoComune(SetGenerali a, SetGenerali b);
 
+bool areInCicle(int a, int b);
+
 void merge(SetGenerali a, SetGenerali b);
 
 	
@@ -169,7 +171,7 @@ void visita(int v, GeneraleItem* grafo, stack path) {
 			do {
 				q=path.pop();
 				cicloNuovo.insert(q);
-				grafo[p].color=WHITE;
+				grafo[p].colore=WHITE;
 				grafo[q].sottoposti.erase(p);
 				for(int figlio:grafo[p].figli){
 					grafo[figlio].gradoE++;	
@@ -179,7 +181,7 @@ void visita(int v, GeneraleItem* grafo, stack path) {
 			while(q!=f);
 			
 			for(SetGenerali c: cicli){
-				if (hanno1elementoComune(c, cicloNuovo))
+				if (ha1e1elementoComune(c, cicloNuovo))
 					merge(c, cicloNuovo);
 				else cicli.push_back(cicloNuovo);
 			}
@@ -218,8 +220,14 @@ void visita(int v, GeneraleItem* grafo, stack path) {
 bool ha1elementoComune(SetGenerali a, SetGenerali b){
 	for(int el: a)
 		if(b.find(el) != b.end())
+			return true;		
+	return false;
+}
+
+bool areInCicle(int a, int b) {
+	for(SetGenerali set:cicli)
+		if(set.find(a) != set.end() && set.find(b) != set.end())
 			return true;
-			
 	return false;
 }
 
