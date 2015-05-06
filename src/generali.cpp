@@ -24,32 +24,33 @@
 */
 typedef std::unordered_set< int > SetGenerali;
 
+typedef struct _Ritorna {
+	
+	int comandato = NONE;
+	SetGenerali* ciclo = NULL;
+
+}Ritorna;
 /**
 * Item dell'array di Generali
 */
 struct GeneraleItem{ //Generale contenuto all'interno dell'Array
 
 	int colore = WHITE;
-	SetGenerali sconfitto;
-
 	int comandato = NONE;
+
+	SetGenerali sconfitto;
+	SetGenerali vincitore;
 	SetGenerali sottoposti;
 
-	//Generali che ho sconfitto
-	SetGenerali vincitore;
+	SetGenerali* ciclo = NULL;
 
 };
 
 /**
 * Ritorna vero se esiste rivalità tra g1 e g2, falso altrimenti
 */
-bool checkRivalita(int g1, int g2, GeneraleItem* grafo,std::vector<SetGenerali> cicli);
 
-void checkSottoposto(int generale,GeneraleItem* grafo,std::vector<SetGenerali> cicli);
-
-bool puoSottoposto(int gf,int gp,GeneraleItem* grafo,std::vector<SetGenerali> cicli);
-
-SetGenerali DFS(int i,GeneraleItem* grafo);
+Ritorna DFS(int i,GeneraleItem* grafo);
 
 void rimuoviPerdenti(int p,GeneraleItem* grafo);
 
@@ -60,7 +61,6 @@ int main(int argc, char* argv[]){
 	int V = 0;
 	int E = 0;
 	GeneraleItem* grafo;
-	std::vector<SetGenerali> cicli;
 
 	//LETTURA DEL GRAFO
 
@@ -72,63 +72,58 @@ int main(int argc, char* argv[]){
 
 	int vinc,perd;
 	for(int I = 0; I < E; I++){
-
 		fscanf(input,"%d %d",&vinc,&perd);
-
 		grafo[perd].sconfitto.insert(vinc);
-		//grafo[perd].disprezzo.insert(vinc); //SOLO BFS NO BFS2
 		grafo[vinc].vincitore.insert(perd);
 	}
-
-	for(int i = 0; i < V; i++){
-		if(grafo[i].vincitore.empty()) 
-			rimuoviPerdenti(i,grafo);
-	}
-
 
 	fclose(input);
 	end = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed_seconds = end-start;
 
-	std::cout << "Lettura: " << elapsed_seconds.count() << std::endl;
+	std::cout << "Lettura: " << elapsed_seconds.count() << std::endl;	
+
+	start = std::chrono::system_clock::now();
+	for(int i = 0; i < V; i++){
+		if(grafo[i].vincitore.empty())
+			rimuoviPerdenti(i,grafo);
+	}
+	end = std::chrono::system_clock::now();
+	elapsed_seconds = end-start;
+
+	std::cout << "Rimozione Perdenti: " << elapsed_seconds.count() << std::endl;
 
 	//ELABORAZIONE DEL RISULTATO
 	start = std::chrono::system_clock::now();
 	for(int i=0; i<V; i++){
-		SetGenerali ci = DFS(i,grafo);
-		if(!ci.empty())
-			cicli.insert(cicli.begin(),ci);
+		DFS(i,grafo);
 	}
 
 	end = std::chrono::system_clock::now();
 	elapsed_seconds = end-start;
 
-	std::cout << "BFS: " << elapsed_seconds.count() << std::endl;
-	
-	//Costruzione dell'albero
-	start = std::chrono::system_clock::now();
+	std::cout << "DFS: " << elapsed_seconds.count() << std::endl;
+
+	//Creazione Albero
 	std::stringstream ssCons;
 	std::stringstream ssSottoposti;
-	int consiglieri = 0;	
+	int consiglieri = 0;
 
-	for(int i=0; i<V; i++) {
-		//L'elemento è già stato aggiunto nell'albero?
+	for(int i = 0; i < V; i++){
+
 		if(grafo[i].comandato == NONE){
-			checkSottoposto(i,grafo,cicli);
+			grafo[i].comandato = ROOT;
 		}
 
-		if(grafo[i].comandato == -1){
-			ssCons << i << " ";
+		if(grafo[i].comandato == ROOT){
 			consiglieri++;
+			ssCons << i << " ";
 		}else{
-			ssSottoposti << grafo[i].comandato << " " << i << "\n";
+			ssSottoposti<< grafo[i].comandato << " " << i << std::endl;
 		}
 	}
-	end = std::chrono::system_clock::now();
-	elapsed_seconds = end-start;
 
-	std::cout << "Albero: " << elapsed_seconds.count() << std::endl;
-
+	//OUTPUT
 	start = std::chrono::system_clock::now();
 	FILE* output = fopen("output.txt","w");
 
@@ -145,74 +140,104 @@ int main(int argc, char* argv[]){
 	return 0;
 }
 
-bool checkRivalita(int g1, int g2, GeneraleItem* grafo,std::vector<SetGenerali> cicli) {
-	for(SetGenerali ciclo: cicli){
-		if(ciclo.count(g1) == 1 || ciclo.count(g2) == 1){
-			if(ciclo.count(g1) == 1 && ciclo.count(g2) == 1){
-				return true;
-			}else{
-				return false;
+SetGenerali* merge(SetGenerali* cicli[],int size,GeneraleItem* grafo){
+
+	SetGenerali* ciclo = NULL;
+	for(int i = 0; i < size; i++){
+		if(cicli[i] == NULL)
+			continue;
+		if(ciclo == NULL){
+			ciclo = cicli[i];
+		}else{
+			for(int c : *cicli[i]){
+				grafo[c].ciclo = ciclo;
+				ciclo->insert(c);
 			}
+			//free(cicli[i]);
 		}
 	}
-	return false;
+	return ciclo;
 }
 
-bool puoSottoposto(int gf,int gp,GeneraleItem* grafo,std::vector<SetGenerali> cicli){
+Ritorna DFS(int i,GeneraleItem* grafo){
 
-	//Se per caso si odiano a vicenda NO! SECONDA LEGGE
-	if(checkRivalita(gp,gf,grafo,cicli))
-		return false;
+	Ritorna r;
 
-	//potrebbe essere figlio.. controllare i fratelli
-	bool ok = true;	 //Se non ha fratelli OK! //TERZA LEGGE
-	for(int g: grafo[gp].sottoposti){	
-		ok = checkRivalita(g,gf,grafo,cicli) ? false : ok;
-	}
-
-	return ok;
-}
-
-void checkSottoposto(int generale,GeneraleItem* grafo,std::vector<SetGenerali> cicli){
-	for(int g: grafo[generale].sconfitto){
-		if(puoSottoposto(generale,g,grafo,cicli)){
-			grafo[generale].comandato = g;
-			grafo[g].sottoposti.insert(generale);
-			return;
+	if(grafo[i].colore == BLACK){
+		if(grafo[i].ciclo == NULL){
+			r.comandato = i;
 		}
+		r.ciclo = grafo[i].ciclo;
+
+		//std::cout << "b: "<< i << std::endl;
+
+		return r;
 	}
-	grafo[generale].comandato = ROOT;
-	return;
-}
 
-SetGenerali DFS(int i,GeneraleItem* grafo){
-	
-	if(grafo[i].colore == BLACK) //Elemento già completato
-		return SetGenerali();
+	if(grafo[i].colore == GREEN){
+		r.ciclo = new SetGenerali();
+		r.ciclo->insert(i);
 
-	if(grafo[i].colore == GREEN)
-		return SetGenerali({ i });
+		//std::cout << "g: "<< i << std::endl;
+		return r;
+	}
+
+	if(grafo[i].sconfitto.empty()){
+		r.comandato = i;
+		r.ciclo = NULL;
+
+		grafo[i].colore = BLACK;
+		grafo[i].comandato = ROOT;
+
+		//std::cout << "t: "<< i << std::endl;
+		return r;
+	}
+
+	//std::cout << "w: "<< i << std::endl;
 
 	grafo[i].colore = GREEN;
 
-	SetGenerali set;
-	for(int v : grafo[i].sconfitto){
-		SetGenerali ret_set = DFS(v,grafo);
-		if(!ret_set.empty()){
-			for(int r: ret_set){
-				set.insert(r);
+	SetGenerali ppPadri;
+	SetGenerali *cicli[grafo[i].sconfitto.size()];
+	int pos = 0;
+	for(int v:grafo[i].sconfitto){
+		//std::cout << i << "->" << v << std::endl;
+		Ritorna ret = DFS(v,grafo);
+		//std::cout << "R" << i << std::endl;
+		if(ret.comandato != NONE){
+			ppPadri.insert(ret.comandato);
+		}
+		cicli[pos++] = ret.ciclo;
+	}
+
+	grafo[i].ciclo = merge(cicli,grafo[i].sconfitto.size(),grafo);
+	r.ciclo = grafo[i].ciclo;
+
+	if(grafo[i].ciclo != NULL){
+		r.ciclo->insert(i);
+	}
+
+	for(int p: ppPadri){
+		bool fratello = true;
+		for(int f: grafo[p].sottoposti){
+			if(grafo[i].ciclo->count(f) == 1){
+				fratello = false;
+				break;
 			}
+		}
+		if(fratello){
+			grafo[i].comandato = p;
+			grafo[p].sottoposti.insert(i);
 		}
 	}
 
-	if(!set.empty()){
-		set.insert(i);
-	}
+	if(grafo[i].comandato != NONE)
+		r.comandato = grafo[i].comandato;
 
 	grafo[i].colore = BLACK;
 
-	return set;
-	
+	return r;
+
 }
 
 void rimuoviPerdenti(int p,GeneraleItem* grafo){
