@@ -28,33 +28,18 @@ typedef std::unordered_set< int > SetGenerali;
 * Item dell'array di Generali
 */
 struct GeneraleItem{ //Generale contenuto all'interno dell'Array
-
 	int colore = WHITE;
-	SetGenerali sconfitto;
-
-	int comandato = NONE;
+	SetGenerali figli;
+	int gradoE;
 	SetGenerali sottoposti;
-
-	//Generali che mi disprezzano
-	SetGenerali disprezzo;
-
-	//Generali che ho sconfitto
-	SetGenerali vincitore;
-
 };
 
-/**
-* Ritorna vero se esiste rivalità tra g1 e g2, falso altrimenti
-*/
-bool checkRivalita(int g1, int g2, GeneraleItem* grafo);
+void visita(int v, GeneraleItem* grafo, stack path);
 
-void checkSottoposto(int generale,GeneraleItem* grafo);
+bool ha1elementoComune(SetGenerali a, SetGenerali b);
 
-bool puoSottoposto(int gf,int gp,GeneraleItem* grafo);
+void merge(SetGenerali a, SetGenerali b);
 
-void BFS2(int i,GeneraleItem* grafo);
-
-void rimuoviPerdenti(int p,GeneraleItem* grafo);
 
 int main(int argc, char* argv[]){
 
@@ -63,6 +48,9 @@ int main(int argc, char* argv[]){
 	int V = 0;
 	int E = 0;
 	GeneraleItem* grafo;
+	SetGenerali consiglieri;
+	
+	vector<SetGenerali> cicli;
 
 
 	//LETTURA DEL GRAFO
@@ -75,16 +63,9 @@ int main(int argc, char* argv[]){
 
 	int vinc,perd;
 	for(int I = 0; I < E; I++){
-
 		fscanf(input,"%d %d",&vinc,&perd);
-		grafo[perd].sconfitto.insert(vinc);
-		//grafo[perd].disprezzo.insert(vinc); //SOLO BFS NO BFS2
-		grafo[vinc].vincitore.insert(perd);
-	}
-
-	for(int i = 0; i < V; i++){
-		if(grafo[i].vincitore.empty())
-			rimuoviPerdenti(i,grafo);
+		grafo[vinc].figli.insert(perd);
+		grafo[vinc].gradoE++;
 	}
 
 	fclose(input);
@@ -95,9 +76,14 @@ int main(int argc, char* argv[]){
 
 	//ELABORAZIONE DEL RISULTATO
 	start = std::chrono::system_clock::now();
+	
+	// Chi non ha archi entranti è consigliere
 	for(int i=0; i<V; i++){
-		BFS2(i,grafo);
+		if(grafo[i].gradoE == 0){
+			consiglieri.insert(i);					
+		}
 	}
+	
 	end = std::chrono::system_clock::now();
 	elapsed_seconds = end-start;
 
@@ -110,6 +96,36 @@ int main(int argc, char* argv[]){
 		}
 		std::cout << std::endl;
 	}*/
+
+	for(int v: consiglieri){
+	
+		stack<int> path;
+		
+		grafo[v].colore = GREEN; //marco il consigliere iniziale
+		visita(v, grafo, path);
+		
+		for(int i=0; i<V; i++){
+		if(grafo[i].gradoE == 0){
+			consiglieri.insert(i);					
+		}
+	}
+	
+	
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	
 	//Costruzione dell'albero
@@ -152,132 +168,77 @@ int main(int argc, char* argv[]){
 	return 0;
 }
 
-bool checkRivalita(int g1, int g2, GeneraleItem* grafo) {
-	if(grafo[g1].disprezzo.count(g2)==1 && grafo[g2].disprezzo.count(g1)==1)
-		return true;
-	return false;
-}
 
-bool puoSottoposto(int gf,int gp,GeneraleItem* grafo){
+void visita(int v, GeneraleItem* grafo, stack path){
 
-	//Se per caso si odiano a vicenda NO! SECONDA LEGGE
-	if(grafo[gp].disprezzo.count(gf) == 1) 		
-		return false;
+	if(grafo[v].colore != GREEN){ return; }
 
-	//potrebbe essere figlio.. controllare i fratelli
-	bool ok = true;	 //Se non ha fratelli OK! //TERZA LEGGE
-	for(int g: grafo[gp].sottoposti){	
-		ok = checkRivalita(g,gf,grafo) ? false : ok;
-	}
-
-	return ok;
-}
-
-void checkSottoposto(int generale,GeneraleItem* grafo){
-	for(int g: grafo[generale].sconfitto){
-		if(puoSottoposto(generale,g,grafo)){
-			grafo[generale].comandato = g;
-			grafo[g].sottoposti.insert(generale);
-			return;
+	for(int f: grafo[v].figli){
+		if(f.colore == BLACK) continue;
+		if(f.colore == GREEN) { // c'è un ciclo!
+			int q;
+			int p=v;
+			SetGenerali cicloNuovo;
+			cicloNuovo.insert(v);
+			do {
+				q=path.pop();
+				cicloNuovo.insert(q);
+				grafo[p].color=WHITE;
+				grafo[q].sottoposti.erase(p);
+				for(int figlio:grafo[p].figli){
+					grafo[figlio].gradoE++;	
+				}
+				p=q;
+			}
+			while(q!=f);
+			
+			for(SetGenerali c: cicli){
+				if (hanno1elementoComune(c, cicloNuovo)){
+					merge(c, cicloNuovo);
+				}
+				else cicli.insert(cicloNuovo);
+			}
+			
 		}
-	}
-	grafo[generale].comandato = ROOT;
-	return;
-}
-
-void BFS2(int i,GeneraleItem* grafo){
+		if(f.colore == WHITE) { //può essere mio figlio
+			// controllo se non è in un ciclo con v
+			// controllo se non è in un ciclo con gli altri figli già assegnati di v --TERZA LEGGE
+			bool canBeS=true;
+			
+			if(areInCicle(f,v)) continue;
+			for(int s:grafo[v].sottoposti)
+				if(areInCicle(s,f)) {canBeS=false; break;}
+			
+			if (canBeS){
+				f.colore = GREEN;
+				grafo[v].sottoposti.insert(f);
+				
+				for(int figlio:grafo[f].figli){
+					grafo[figlio].gradoE--;	
+				}
+				
+				path.push(v);
+				visita(f, grafo, path);
+			}
+			}
+		}
 	
-	if(grafo[i].colore == BLACK) //Elemento già completato
-		return;
-
-	std::queue<int> to_control;
-
-	/*
-	* Scorro tutti i generali che mi hanno sconfitto
-	*/		
-	for(int g: grafo[i].sconfitto) {
-
-		if(grafo[i].colore == GREEN && grafo[i].disprezzo.count(g) == 1)
-			continue;
-		
-		grafo[i].disprezzo.insert(g);
-
-		if(grafo[g].colore == BLACK){
-			for(int gen: grafo[g].disprezzo){
-				grafo[i].disprezzo.insert(gen);
-			}
-		}else{
-			for(int gen: grafo[g].sconfitto){
-				/*
-				* Se per caso non è già un generale che mi ha sconfitto allora lo aggiungo tra chi mi disprezza 
-				*/
-				if(grafo[i].disprezzo.find(gen) == grafo[i].disprezzo.end()){
-					grafo[i].disprezzo.insert(gen);
-					to_control.push(gen);
-				}
-			}
-		}
 	}
 
-	while (!to_control.empty()){
-		int g = to_control.front();
+	grafo[v].colore = BLACK;
 
-		if(grafo[g].colore == BLACK){
-			for(int gen: grafo[g].disprezzo){
-				grafo[i].disprezzo.insert(gen);
-			}
-		}else{
-			for(int gen: grafo[g].sconfitto){
-				/*
-				* Se per caso non è già un generale che mi ha sconfitto allora lo aggiungo tra chi mi disprezza 
-				*/
-				if(grafo[i].disprezzo.find(gen) == grafo[i].disprezzo.end()){
-					grafo[i].disprezzo.insert(gen);
-					to_control.push(gen);
-				}
-			}
-		}
-
-		to_control.pop();
-	}
-
-	grafo[i].colore = BLACK;
-
-	//Seconda fase BFS ( DFS )
-	for(int g: grafo[i].vincitore) {
-
-		if(grafo[g].colore == BLACK)
-			continue;
-
-		grafo[g].disprezzo.insert(i);
-		for(int d: grafo[i].disprezzo){
-
-			if(d != g && grafo[g].disprezzo.find(d) == grafo[g].disprezzo.end()){
-				grafo[g].disprezzo.insert(d);
-			}
-
-		}
-
-		grafo[g].colore = GREEN;
-
-		BFS2(g,grafo);
-	}
-}
-
-void rimuoviPerdenti(int p,GeneraleItem* grafo){
-
-	grafo[p].colore = BLACK;
-	if(grafo[p].sconfitto.empty())
-		grafo[p].comandato = ROOT;
-	else
-		grafo[p].comandato = *(grafo[p].sconfitto.begin());
-
-	for(int v: grafo[p].sconfitto){
-		grafo[v].vincitore.erase(p);
-
-		if(grafo[v].vincitore.empty())
-			rimuoviPerdenti(v,grafo);
-	}
 
 }
 
+
+bool ha1elementoComune(SetGenerali a, SetGenerali b){
+
+return true;
+
+
+}
+
+void merge(SetGenerali a, SetGenerali b){
+
+
+}
