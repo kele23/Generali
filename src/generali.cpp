@@ -31,6 +31,30 @@ typedef struct _LNodo{
 	struct _LNodo* next;
 }LNodo;
 
+class Stack{
+
+private:
+	LNodo* top;
+
+public:
+	Stack(){
+		top = NULL;
+	};
+
+	void push(int n){
+		LNodo* nodo = new LNodo();
+		nodo->n = n;
+		nodo->next = this->top;
+		this->top = nodo;
+	};
+
+	int pop(){
+		int n = top->n;
+		top = top->next;
+		return n;
+	};
+};
+
 /**
 * Item dell'array di Generali
 */
@@ -51,14 +75,36 @@ struct Generale{ //Generale contenuto all'interno dell'Array
 	int comandato = NONE;
 };
 
-std::vector<SetNodi> scc;
+//std::vector<SetNodi> scc;
 int indice = 0;
-std::stack<int> s;
+Stack s;
 Generale* grafo;
 int currentScc = 0;
 
 void tarjan(int nodo);
 void rimuoviPerdenti(int);
+void print(int V){
+
+	for(int i = 0; i < V; i++) {
+		std::cout << i << " scc: " << grafo[i].scc << " cmd: " << grafo[i].comandato <<  " -> ";
+		
+		LNodo* current = grafo[i].successori;
+		while( current != NULL)  {
+			int succ = current->n;
+			std::cout << succ << " ";
+			current = current->next;
+		}
+		std::cout << std::endl << "    <- ";
+		current = grafo[i].predecessori;
+		while( current != NULL)  {
+			int succ = current->n;
+			std::cout << succ << " ";
+			current = current->next;
+		}
+		std::cout << std::endl;
+	}
+
+}
 	
 int main(int argc, char* argv[]){
 
@@ -99,7 +145,7 @@ int main(int argc, char* argv[]){
 	fclose(input);
 	end = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed_seconds = end-start;
-	std::cout << "Lettura: " << elapsed_seconds.count() << std::endl;
+	//std::cout << "Lettura: " << elapsed_seconds.count() << std::endl;
 	/**********************************************************
 	*****LETTURA********/
 
@@ -116,12 +162,11 @@ int main(int argc, char* argv[]){
 	
 	end = std::chrono::system_clock::now();
 	elapsed_seconds = end-start;
-	std::cout << "Tarjan: " << elapsed_seconds.count() << std::endl;	
+	//std::cout << "Tarjan: " << elapsed_seconds.count() << std::endl;	
 	/**********************************************************
 	*****TARJAN********/
 
-
-
+	//print(V);
 
 
 	/**********************************************************
@@ -153,14 +198,15 @@ int main(int argc, char* argv[]){
 				pre = current;
 			current = current->next;
 		}
+
 	}
 	end = std::chrono::system_clock::now();
 	elapsed_seconds = end-start;
-	std::cout << "Rimozione Archi: " << elapsed_seconds.count() << std::endl;
+	//std::cout << "Rimozione Archi: " << elapsed_seconds.count() << std::endl;
 	/**********************************************************
 	*****SCC RIMOZIONE ARCHI********/
 
-
+	//print(V);
 
 	int consiglieri = 0;
 	std::stringstream ssCons;
@@ -172,7 +218,7 @@ int main(int argc, char* argv[]){
 	for(int i = 0; i < V; i++) {
 
 		current = grafo[i].successori;
-		while( current != NULL)  {
+		while( current != NULL )  {
 			int succ = current->n;
 
 			grafo[succ].comandato = i;
@@ -180,6 +226,8 @@ int main(int argc, char* argv[]){
 			current = current->next;
 		}
 	}
+
+
 		
 	for(int i = 0; i < V; i++) {
 
@@ -194,6 +242,8 @@ int main(int argc, char* argv[]){
 			ssSottoposti << grafo[i].comandato << " " << i << std::endl;
 		}
 	}
+
+
 	/**********************************************************
 	*****CREAZIONE ALBERO********/
 
@@ -208,7 +258,7 @@ int main(int argc, char* argv[]){
 	end = std::chrono::system_clock::now();
 	elapsed_seconds = end-start;
 
-	std::cout << "Scrittura: " << elapsed_seconds.count() << std::endl;
+	//std::cout << "Scrittura: " << elapsed_seconds.count() << std::endl;
 
 	return 0;
 }
@@ -229,23 +279,22 @@ void tarjan(int nodo) {
 			tarjan(succ);
 			grafo[nodo].min_dist = std::min(grafo[nodo].min_dist, grafo[succ].min_dist);
 		}
-		else if(grafo[nodo].onStack) 
+		else if(grafo[succ].onStack)  //ORRORE
 			grafo[nodo].min_dist = std::min(grafo[nodo].min_dist, grafo[succ].indice);
 
 		current = current->next;
 	}
 	if(grafo[nodo].min_dist == grafo[nodo].indice) {
-		SetNodi setN;
+		//SetNodi setN;
 		
 		do {
-			tmp = s.top();
+			tmp = s.pop();
 			grafo[tmp].onStack = false;
-			setN.insert(tmp);
+			//setN.insert(tmp);
 			grafo[tmp].scc = currentScc;
-			s.pop();
 		} while (tmp != nodo);
 
-		scc.push_back(setN);
+		//scc.push_back(setN);
 		currentScc++;
 	}
 }
