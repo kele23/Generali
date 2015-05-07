@@ -36,9 +36,9 @@ struct GeneraleItem{ //Generale contenuto all'interno dell'Array
 	SetGenerali sottoposti;
 };
 
-vector<SetGenerali> cicli;
+std::vector<SetGenerali> cicli;
 
-void visita(int v, GeneraleItem* grafo, stack path);
+void visita(int v, GeneraleItem* grafo, std::stack<int> path);
 
 bool ha1elementoComune(SetGenerali a, SetGenerali b);
 
@@ -103,7 +103,7 @@ int main(int argc, char* argv[]){
 	}*/
 
 	for(int v: consiglieri){
-		stack<int> path;
+		std::stack<int> path;
 		
 		grafo[v].colore = GREEN; //marco il consigliere iniziale
 		visita(v, grafo, path);
@@ -117,11 +117,11 @@ int main(int argc, char* argv[]){
 	
 	//Costruzione dell'albero
 	start = std::chrono::system_clock::now();
-	std::stringstream ssCons;
-	std::stringstream ssSottoposti;
-	int numConsiglieri = 0;	
-/*
-	for(int i=0; i<V; i++) {
+
+
+	int numConsiglieri = consiglieri.size();	
+
+	/*for(int i=0; i<V; i++) {
 		//L'elemento è già stato aggiunto nell'albero?
 		if(grafo[i].comandato == NONE){
 			checkSottoposto(i,grafo);
@@ -138,25 +138,32 @@ int main(int argc, char* argv[]){
 	elapsed_seconds = end-start;
 
 	std::cout << "Albero: " << elapsed_seconds.count() << std::endl;
-
+*/
 	start = std::chrono::system_clock::now();
 	FILE* output = fopen("output.txt","w");
 
-	fprintf(output,"%d\n",consiglieri);
-	fprintf(output,"%s\n",ssCons.str().c_str());
-	fprintf(output,"%s\n",ssSottoposti.str().c_str());
+	fprintf(output,"%d\n",numConsiglieri);
+	for(int i : consiglieri){
+		fprintf(output,"%d ",i);
+	}
+	fprintf(output,"\n");
+	for(int i = 0; i < V; i++){
+		for(int s: grafo[i].sottoposti){
+			fprintf(output,"%d %d\n",i,s);
+		}
+	}
 	
 	fclose(output);
 	end = std::chrono::system_clock::now();
 	elapsed_seconds = end-start;
 
 	std::cout << "Scrittura: " << elapsed_seconds.count() << std::endl;
-*/
+
 	return 0;
 }
 
 
-void visita(int v, GeneraleItem* grafo, stack path) {
+void visita(int v, GeneraleItem* grafo, std::stack<int> path) {
 
 	if(grafo[v].colore != GREEN)
 		return;
@@ -169,7 +176,8 @@ void visita(int v, GeneraleItem* grafo, stack path) {
 			SetGenerali cicloNuovo;
 			cicloNuovo.insert(v);
 			do {
-				q=path.pop();
+				q=path.top();
+				path.pop();
 				cicloNuovo.insert(q);
 				grafo[p].colore=WHITE;
 				grafo[q].sottoposti.erase(p);
@@ -181,7 +189,7 @@ void visita(int v, GeneraleItem* grafo, stack path) {
 			while(q!=f);
 			
 			for(SetGenerali c: cicli){
-				if (ha1e1elementoComune(c, cicloNuovo))
+				if (ha1elementoComune(c, cicloNuovo))
 					merge(c, cicloNuovo);
 				else cicli.push_back(cicloNuovo);
 			}
