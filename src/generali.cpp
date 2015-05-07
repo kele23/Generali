@@ -36,10 +36,12 @@ struct GeneraleItem{ //Generale contenuto all'interno dell'Array
 	SetGenerali sottoposti;
 
 	//Generali che mi disprezzano
-	SetGenerali* disprezzo;
+	SetGenerali disprezzo;
 
 	//Generali che ho sconfitto
 	SetGenerali vincitore;
+
+	int nEntrante = 0;
 
 };
 
@@ -55,6 +57,8 @@ bool puoSottoposto(int gf,int gp,GeneraleItem* grafo);
 void BFS2(int i,GeneraleItem* grafo);
 
 void rimuoviPerdenti(int p,GeneraleItem* grafo);
+
+void rimuoviVincenti(int i,int p,GeneraleItem* grafo);
 
 int main(int argc, char* argv[]){
 
@@ -80,11 +84,18 @@ int main(int argc, char* argv[]){
 		grafo[perd].sconfitto.insert(vinc);
 		//grafo[perd].disprezzo.insert(vinc); //SOLO BFS NO BFS2
 		grafo[vinc].vincitore.insert(perd);
+
+		grafo[perd].nEntrante++;
 	}
 
 	for(int i = 0; i < V; i++){
 		if(grafo[i].vincitore.empty())
 			rimuoviPerdenti(i,grafo);
+	}
+
+	for(int i = 0; i < V; i++){
+		if(grafo[i].nEntrante == 0 && grafo[i].colore != BLACK)
+			rimuoviVincenti(i,ROOT,grafo);
 	}
 
 	fclose(input);
@@ -281,3 +292,21 @@ void rimuoviPerdenti(int p,GeneraleItem* grafo){
 
 }
 
+void rimuoviVincenti(int i,int p,GeneraleItem* grafo){
+
+	grafo[i].colore = BLACK;
+	grafo[i].comandato = p;
+
+	if(p != NONE && p != ROOT){
+		grafo[p].sottoposti.insert(i);
+	}
+
+	for(int s: grafo[i].vincitore){
+		grafo[s].nEntrante--;
+		if(grafo[s].nEntrante == 0){
+			grafo[s].sconfitto.clear();
+			rimuoviVincenti(s,i,grafo);
+		}
+	}
+
+}
