@@ -71,7 +71,7 @@ int main(int argc, char* argv[]){
 	for(int I = 0; I < E; I++){
 		fscanf(input,"%d %d",&vinc,&perd);
 		grafo[vinc].figli.insert(perd);
-		grafo[vinc].gradoE++;
+		grafo[perd].gradoE++;
 	}
 
 	fclose(input);
