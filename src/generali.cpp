@@ -5,15 +5,18 @@
 #include <sstream>
 #include <vector>
 #include <stack>
-
+#include <climits>
 #include <chrono>
 #include <ctime>
 
 //Comandato Da
 #define ROOT -1
 #define NONE -2
+#define NIL -2
 
-#define PRINT 
+//#define PRINT 
+
+#define INF INT_MAX
 
 
 typedef struct _LNodo{
@@ -77,7 +80,7 @@ Generale* grafo;
 int currentScc = 0;
 
 void tarjan(int nodo);
-void hopcroftKarp(LNodo* comp);
+void hopcroftKarp(LNodo* comp,int V);
 bool BFS(LNodo* comp);
 bool DFS(int nodo);
 
@@ -229,10 +232,6 @@ int main(int argc, char* argv[]){
 	/**********************************************************
 	*****SCC RIMOZIONE ARCHI********/
 
-	#ifdef PRINT	
-		print(V);
-	#endif
-
 	int consiglieri = 0;
 	std::stringstream ssCons;
 	std::stringstream ssSottoposti;
@@ -285,15 +284,17 @@ int main(int argc, char* argv[]){
 	/**********************************************************
 	*****CREAZIONE ALBERO 3 LEGGI********/
 	for(LNodo* comp:scc) {
-		hopcroftKarp(comp);
+		if(comp->next != NULL || grafo[comp->n].predecessori != NULL)
+			hopcroftKarp(comp,V);
 	}
+
+	#ifdef PRINT	
+		print(V);
+	#endif
 	
 	for(int i = 0; i < V; i++) {
 
-			if(grafo[i].comandato == NONE)
-				grafo[i].comandato = ROOT;
-
-			if(grafo[i].comandato == ROOT){
+			if(grafo[i].comandato == NIL){
 				consiglieri++;
 				ssCons << i << " ";
 			}
@@ -366,43 +367,100 @@ void tarjan(int nodo) {
 	}
 }
 
-void hopcroftKarp(LNodo* comp) {
-	int matching = 0;
-	LNodo* current = comp;
-	while( current != NULL)  {
-		int u = current->n;	
-		current = current->next;
+
+int distNIL;
+
+void hopcroftKarp(LNodo* comp, int V) {
+	//std::cout << "BFS: " << BFS(comp) << std::endl;
+	for(int i = 0; i < V; i++){
+		grafo[i].pairV = grafo[i].pairU = NIL;
 	}
+
+	while(BFS(comp) == true){
+
+		LNodo* current = comp;
+		while( current != NULL)  {
+			int u = current->n;
+
+			if(grafo[u].pairU == NIL){
+				DFS(u);
+			}
+
+			current = current->next;
+		}
+
+	}
+
+}
+
+bool DFS(int u){
+	if(u != NIL){
+		LNodo* current = grafo[u].predecessori;
+		while( current != NULL)  {
+			int v = current->n;
+
+			if( (grafo[v].pairV == NIL && distNIL == grafo[u].distHK + 1  ) || ( grafo[v].pairV != NIL && grafo[grafo[v].pairV].distHK == grafo[u].distHK + 1 )) {
+				if( DFS(grafo[v].pairV) == true ){
+					grafo[v].pairV = u;
+					grafo[u].pairU = v;
+
+					grafo[u].comandato = v;
+					return true;
+				}
+			}
+
+			current = current->next;
+		}
+		grafo[u].distHK = INF;
+		return false;
+	}
+	return true;
 }
 
 bool BFS(LNodo* comp) {
-	int distNONE = -1;
+
 	std::queue<int> coda;
+	
 	LNodo* current = comp;
 	while( current != NULL)  {
 		int u = current->n;	
-		if(grafo[u].pairU == NONE) {
+		if(grafo[u].pairU == NIL) {
 			grafo[u].distHK = 0;
 			coda.push(u);
 		}	
 		else {
-			grafo[u].distHK = -1;
+			grafo[u].distHK = INF;
 		}
 		current = current->next;
 	}
+
+	distNIL = INF;
+	
 	while(!coda.empty()) {
 		int u = coda.front();
 		coda.pop();
-		if(grafo[u].distHK < distNONE || distNONE == -1) {
+		if(u != NIL && grafo[u].distHK < distNIL) {
+				//Scorro i V
 				current = grafo[u].predecessori;
 				while( current != NULL)  {
-					int v = current->n;	
-					if(grafo[v].pairV == NONE && distNONE == -1) {
-						
+					int v = current->n;
+
+					if( (grafo[v].pairV == NIL && distNIL == INF  ) || ( grafo[v].pairV != NIL && grafo[grafo[v].pairV].distHK == INF )) {
+						if(grafo[v].pairV == NIL)
+							distNIL = grafo[u].distHK + 1;
+						else
+							grafo[grafo[v].pairV].distHK = grafo[u].distHK + 1;
+
+						coda.push(grafo[v].pairV);
+
+						//return distNIL != INF;
 					}
 					current = current->next;
 				}
+
 		}		
 	}
+
+	return distNIL != INF;
 
 }
