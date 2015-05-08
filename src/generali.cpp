@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <iostream>
 #include <stdlib.h>
-#include <unordered_set>
 #include <queue>
 #include <sstream>
 #include <vector>
@@ -16,10 +15,6 @@
 
 #define PRINT 
 
-/**
-* Definizione del Set
-*/
-typedef std::unordered_set< int > SetNodi;
 
 typedef struct _LNodo{
 	int n;
@@ -57,6 +52,7 @@ struct Generale{ //Generale contenuto all'interno dell'Array
 	//Tarjan
 	int indice = -1;
 	int min_dist;
+	int distHK = 0; //Distanza per Hopcroft-Karp
 	bool onStack = false;
 
 	//Grafo
@@ -68,16 +64,22 @@ struct Generale{ //Generale contenuto all'interno dell'Array
 
 	//Albero
 	int comandato = NONE;
+	
+	//HK
+	int pairU = NONE;
+	int pairV = NONE;
 };
 
-//std::vector<SetNodi> scc;
+std::vector<LNodo*> scc;
 int indice = 0;
 Stack s;
 Generale* grafo;
 int currentScc = 0;
 
 void tarjan(int nodo);
-void rimuoviPerdenti(int);
+void hopcroftKarp(LNodo* comp);
+bool BFS(LNodo* comp);
+bool DFS(int nodo);
 
 #ifdef PRINT
 void print(int V){
@@ -184,7 +186,7 @@ int main(int argc, char* argv[]){
 			if(grafo[i].scc == grafo[succ].scc){
 				//std::cout << "       removed" << std::endl;
 				if(pre == NULL){
-					grafo[i].successori = current->next;
+					grafo[i].successori = current->next; //FORSE RIMUOVERE
 				}
 				else{
 					pre->next = current->next;
@@ -282,8 +284,23 @@ int main(int argc, char* argv[]){
 
 	/**********************************************************
 	*****CREAZIONE ALBERO 3 LEGGI********/
+	for(LNodo* comp:scc) {
+		hopcroftKarp(comp);
+	}
 	
-	
+	for(int i = 0; i < V; i++) {
+
+			if(grafo[i].comandato == NONE)
+				grafo[i].comandato = ROOT;
+
+			if(grafo[i].comandato == ROOT){
+				consiglieri++;
+				ssCons << i << " ";
+			}
+			else{
+				ssSottoposti << grafo[i].comandato << " " << i << std::endl;
+			}
+		}	
 
 
 	/**********************************************************
@@ -332,17 +349,60 @@ void tarjan(int nodo) {
 		current = current->next;
 	}
 	if(grafo[nodo].min_dist == grafo[nodo].indice) {
-		//SetNodi setN;
+		LNodo* setN = NULL;
 		
 		do {
 			tmp = s.pop();
 			grafo[tmp].onStack = false;
-			//setN.insert(tmp);
+			LNodo* nodotmp = new LNodo();
+			nodotmp->n = tmp;
+			nodotmp->next = setN;
+			setN = nodotmp;
 			grafo[tmp].scc = currentScc;
 		} while (tmp != nodo);
 
-		//scc.push_back(setN);
+		scc.push_back(setN);
 		currentScc++;
 	}
 }
 
+void hopcroftKarp(LNodo* comp) {
+	int matching = 0;
+	LNodo* current = comp;
+	while( current != NULL)  {
+		int u = current->n;	
+		current = current->next;
+	}
+}
+
+bool BFS(LNodo* comp) {
+	int distNONE = -1;
+	std::queue<int> coda;
+	LNodo* current = comp;
+	while( current != NULL)  {
+		int u = current->n;	
+		if(grafo[u].pairU == NONE) {
+			grafo[u].distHK = 0;
+			coda.push(u);
+		}	
+		else {
+			grafo[u].distHK = -1;
+		}
+		current = current->next;
+	}
+	while(!coda.empty()) {
+		int u = coda.front();
+		coda.pop();
+		if(grafo[u].distHK < distNONE || distNONE == -1) {
+				current = grafo[u].predecessori;
+				while( current != NULL)  {
+					int v = current->n;	
+					if(grafo[v].pairV == NONE && distNONE == -1) {
+						
+					}
+					current = current->next;
+				}
+		}		
+	}
+
+}
