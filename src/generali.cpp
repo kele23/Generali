@@ -14,12 +14,7 @@
 #define ROOT -1
 #define NONE -2
 
-//Colore BFS1
-#define WHITE	0
-#define BLACK	1	
-
-//Colore BFS2
-#define GREEN 	2 //Visitato attraverso altri nodi
+#define PRINT 
 
 /**
 * Definizione del Set
@@ -83,6 +78,8 @@ int currentScc = 0;
 
 void tarjan(int nodo);
 void rimuoviPerdenti(int);
+
+#ifdef PRINT
 void print(int V){
 
 	for(int i = 0; i < V; i++) {
@@ -94,7 +91,7 @@ void print(int V){
 			std::cout << succ << " ";
 			current = current->next;
 		}
-		std::cout << std::endl << "    <- ";
+		std::cout << "    <- ";
 		current = grafo[i].predecessori;
 		while( current != NULL)  {
 			int succ = current->n;
@@ -105,6 +102,7 @@ void print(int V){
 	}
 
 }
+#endif
 	
 int main(int argc, char* argv[]){
 
@@ -166,7 +164,7 @@ int main(int argc, char* argv[]){
 	/**********************************************************
 	*****TARJAN********/
 
-	//print(V);
+
 
 
 	/**********************************************************
@@ -199,6 +197,29 @@ int main(int argc, char* argv[]){
 			current = current->next;
 		}
 
+		pre = NULL;
+		current = grafo[i].predecessori;
+		while( current != NULL)  {
+			int succ = current->n;
+
+			bool modified = false;
+			//std::cout<< i << " scc: " << grafo[i].scc << " -- " << succ << " scc: " << grafo[succ].scc <<std::endl;
+			if(grafo[i].scc == grafo[succ].scc){
+				//std::cout << "       removed" << std::endl;
+				if(pre == NULL){
+					grafo[i].predecessori = current->next;
+				}
+				else{
+					pre->next = current->next;
+				}
+				modified = true;
+			}
+
+			if(!modified)
+				pre = current;
+			current = current->next;
+		}
+
 	}
 	end = std::chrono::system_clock::now();
 	elapsed_seconds = end-start;
@@ -206,16 +227,21 @@ int main(int argc, char* argv[]){
 	/**********************************************************
 	*****SCC RIMOZIONE ARCHI********/
 
-	//print(V);
+	#ifdef PRINT	
+		print(V);
+	#endif
 
 	int consiglieri = 0;
 	std::stringstream ssCons;
 	std::stringstream ssSottoposti;
 
 
+
+
+
 	/**********************************************************
-	*****CREAZIONE ALBERO********/
-	for(int i = 0; i < V; i++) {
+	*****CREAZIONE ALBERO 2 LEGGI********/
+	/*for(int i = 0; i < V; i++) {
 
 		current = grafo[i].successori;
 		while( current != NULL )  {
@@ -241,11 +267,32 @@ int main(int argc, char* argv[]){
 		else{
 			ssSottoposti << grafo[i].comandato << " " << i << std::endl;
 		}
-	}
+	}*/
+	/**********************************************************
+	*****CREAZIONE ALBERO 2 LEGGI********/
+
+
+
+
+
+
+
+
 
 
 	/**********************************************************
-	*****CREAZIONE ALBERO********/
+	*****CREAZIONE ALBERO 3 LEGGI********/
+	
+	
+
+
+	/**********************************************************
+	*****CREAZIONE ALBERO 3 LEGGI********/
+
+
+
+
+
 
 	start = std::chrono::system_clock::now();
 	FILE* output = fopen("output.txt","w");
